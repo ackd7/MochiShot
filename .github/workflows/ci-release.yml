@@ -1,0 +1,91 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows-x64:
+    name: Build Windows x64 (MSVC C++20)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure CMake (Release x64)
+        run: cmake -S . -B build -A x64
+
+      - name: Build MochiShot (Release)
+        run: cmake --build build --config Release --parallel
+
+      - name: Run Automated Self-Test Suite
+        run: |
+          $p = Start-Process -FilePath "build\Release\MochiShot.exe" -ArgumentList "--self-test" -Wait -PassThru
+          if ($p.ExitCode -ne 0) {
+            Write-Error "MochiShot --self-test failed with exit code $($p.ExitCode)"
+            exit $p.ExitCode
+          }
+          Write-Host "All automated self-tests passed (ExitCode = 0)."
+
+      - name: Package Portable Artifacts & Checksums
+        shell: pwsh
+        run: |
+          $tag = if ("${{ github.ref_type }}" -eq "tag") { "${{ github.ref_name }}" } else { "dev-${{ github.sha }}".Substring(0, 11) }
+          New-Item -ItemType Directory -Force dist, stage | Out-Null
+
+          $exeName = "MochiShot-$tag-win-x64.exe"
+          $zipName = "MochiShot-$tag-win-x64-portable.zip"
+
+          Copy-Item "build\Release\MochiShot.exe" "dist\$exeName"
+          Copy-Item "build\Release\MochiShot.exe" "stage\MochiShot.exe"
+          Copy-Item "README.md" "stage\README.md"
+          Copy-Item "LICENSE" "stage\LICENSE"
+
+          Compress-Archive -Path "stage\*" -DestinationPath "dist\$zipName" -Force
+
+          Push-Location dist
+          $hashes = Get-ChildItem -File | ForEach-Object {
+            $h = (Get-FileHash $_.Name -Algorithm SHA256).Hash.ToLower()
+            "$h  $($_.Name)"
+          }
+          $hashes | Out-File -FilePath "SHA256SUMS.txt" -Encoding utf8
+          Get-Content "SHA256SUMS.txt"
+          Get-ChildItem -File | Select-Object Name, Length
+          Pop-Location
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: MochiShot-win-x64
+          path: dist/*
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "MochiShot ${{ github.ref_name }}"
+          generate_release_notes: true
+          body: |
+            ## ✨ MochiShot ${{ github.ref_name }}
+
+            轻量级原生 Windows 液态玻璃截图与批注工具（设计灵感与 G2 连续曲率圆角 / 液态玻璃着色器配方致敬 [feice11/mochi-compose](https://github.com/feice11/mochi-compose)）。
+
+            ### 📦 下载说明
+            - **`MochiShot-${{ github.ref_name }}-win-x64.exe`**：单文件免安装独立可执行程序（约 400 KB，静态链接，无需安装任何运行库，双击即可使用）
+            - **`MochiShot-${{ github.ref_name }}-win-x64-portable.zip`**：便携压缩包（含可执行文件、说明文档与开源协议）
+            - **`SHA256SUMS.txt`**：文件完整性校验值
+
+            ### 🚀 核心亮点
+            - **极致轻量**：纯原生 C++20 + Direct3D 11 + Direct2D 1.1 编写，体积仅 ~400 KB，后台托盘驻留物理内存仅 **~2–5 MB**
+            - **Mochi 液态玻璃 UI**：实时 HLSL 像素着色器透镜折射、色散、多级 Mip 磨砂模糊、Fresnel 镜面边缘高光、G2 连续曲率超椭圆圆角与 240Hz 弹簧果冻动效
+            - **丰富截图后批注**：自由画笔、荧光笔、G2 圆角框、椭圆、流线几何箭头、递增序号标、中文输入法文字、网格对齐马赛克、高斯模糊遮挡、撤销/重做、桌面悬浮贴图（`T`）
+            - **自定义全局快捷键 & 无感开机自启**：交互式热键录制、一键开启登录静默驻留托盘、多显示器 Per-Monitor DPI v2 像素级适配
+          files: dist/*
