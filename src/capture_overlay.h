@@ -168,11 +168,9 @@ private:
     int hoveredBtnId_ = -1;
     int pressedBtnId_ = -1;
 
-    MochiSpring toolbarAppearSpring_{0.0f, 0.32f, 0.84f};
-    MochiSpring propBarAppearSpring_{0.0f, 0.28f, 0.88f};
-    MochiSpring toolPillXSpring_{0.0f, 0.26f, 0.82f};
-    MochiSpring pressScaleSpring_{1.0f, 0.20f, 0.80f};
-    MochiSpring glowAlphaSpring_{0.0f, 0.28f, 0.90f};
+    MochiSpring toolPillXSpring_{0.0f, 0.16f, 1.0f};
+    MochiSpring pressScaleSpring_{1.0f, 0.16f, 0.92f};
+    MochiSpring glowAlphaSpring_{0.0f, 0.22f, 0.92f};
     D2D1_POINT_2F pressGlowPos_{0, 0};
     bool pillInitialized_ = false;
     LARGE_INTEGER lastQpc_{};

@@ -24,7 +24,7 @@ struct AppConfig {
     bool showMagnifier = true;
     bool windowAutoSnap = true;
     ThemeMode themeMode = ThemeMode::System;
-    SeedAccent seedAccent = SeedAccent::MochiJade;
+    SeedAccent seedAccent = SeedAccent::MochiTeal;
     GlassMode glassMode = GlassMode::LiquidGlass;
     int defaultSaveFormat = 0; // 0 = PNG, 1 = JPEG
     int defaultStrokeSize = 4; // px at 96dpi

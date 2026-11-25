@@ -117,8 +117,6 @@ bool CaptureOverlay::StartCaptureSession() {
     currentStrokeDp_ = static_cast<float>(config_->defaultStrokeSize);
     currentMosaicDp_ = static_cast<float>(config_->defaultMosaicSize);
 
-    toolbarAppearSpring_.SnapTo(0.0f);
-    propBarAppearSpring_.SnapTo(0.0f);
     pressScaleSpring_.SnapTo(1.0f);
     glowAlphaSpring_.SnapTo(0.0f);
 
@@ -311,7 +309,8 @@ void CaptureOverlay::UpdateCursorForPos(float x, float y) {
     };
 
     if (stage_ == Stage::Editing) {
-        if (ptIn(mainBarRect_, x, y) || (propBarAppearSpring_.value > 0.1f && ptIn(propBarRect_, x, y))) {
+        const bool showProps = (activeTool_ != EditTool::Move);
+        if (ptIn(mainBarRect_, x, y) || (showProps && ptIn(propBarRect_, x, y))) {
             SetCursor(LoadCursor(nullptr, IDC_HAND));
             return;
         }
@@ -904,8 +903,6 @@ void CaptureOverlay::DrawFloatingToolbars() {
     }
 
     const bool showProps = (activeTool_ != EditTool::Move);
-    propBarAppearSpring_.target = showProps ? 1.0f : 0.0f;
-    toolbarAppearSpring_.target = 1.0f;
 
     const float propH = 40.0f * dpi;
     const float barGap = 8.0f * dpi;
@@ -926,10 +923,8 @@ void CaptureOverlay::DrawFloatingToolbars() {
         }
     }
 
-    // Spring entrance slide
-    float appear = std::clamp(toolbarAppearSpring_.value, 0.0f, 1.15f);
-    float slideY = (1.0f - appear) * (propBelow ? -10.0f * dpi : 10.0f * dpi);
-    mainBarRect_ = D2D1::RectF(barX, barY + slideY, barX + totalW, barY + slideY + barH);
+    // Appear directly at exact position (no pop/slide bounce animation!)
+    mainBarRect_ = D2D1::RectF(barX, barY, barX + totalW, barY + barH);
 
     // Draw Main Mochi Liquid Glass Capsule Toolbar
     GlassSurfaceSpec mainSpec{};
@@ -1039,15 +1034,15 @@ void CaptureOverlay::DrawFloatingToolbars() {
     // Secondary Mochi Liquid Glass Property Pill (Color swatches + Stroke / Mosaic intensity slider)
     colorSwatchRects_.clear();
     sliderTrackRect_ = {};
-    if (propBarAppearSpring_.value > 0.02f && showProps) {
-        float pAlpha = std::clamp(propBarAppearSpring_.value, 0.0f, 1.0f);
+    if (showProps) {
+        constexpr float pAlpha = 1.0f;
         const bool isFilter = (activeTool_ == EditTool::Mosaic || activeTool_ == EditTool::Blur);
         const float propW = isFilter ? (290.0f * dpi) : (366.0f * dpi);
         float propX = std::clamp(mainBarRect_.left, static_cast<float>(mon.left) + 10.0f * dpi,
                                  static_cast<float>(mon.right) - propW - 10.0f * dpi);
         float propY = propBelow
-            ? (mainBarRect_.bottom + barGap - (1.0f - pAlpha) * 8.0f * dpi)
-            : (mainBarRect_.top - barGap - propH + (1.0f - pAlpha) * 8.0f * dpi);
+            ? (mainBarRect_.bottom + barGap)
+            : (mainBarRect_.top - barGap - propH);
 
         propBarRect_ = D2D1::RectF(propX, propY, propX + propW, propY + propH);
 
@@ -1128,7 +1123,7 @@ void CaptureOverlay::DrawFloatingToolbars() {
 
         // Mochi capsule thumb
         D2D1_RECT_F thumbR = D2D1::RectF(thumbX - 8.5f * dpi, midY - 6.5f * dpi, thumbX + 8.5f * dpi, midY + 6.5f * dpi);
-        DrawMochiShadow(d2d, engine_->D2DFactory(), thumbR, 6.5f * dpi, 3.5f, dpi, cs.isDark, pAlpha);
+        DrawThumbContactShadow(d2d, engine_->D2DFactory(), thumbR, 6.5f * dpi, dpi, cs.isDark, 0.0f);
         FillG2RoundRect(d2d, engine_->D2DFactory(), thumbR, 6.5f * dpi, thumbB.Get());
 
         // Numeric readout (1:1 instant follow during drag per Mochi rule #1!)
@@ -1544,8 +1539,6 @@ LRESULT CaptureOverlay::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
             lastQpc_ = now;
 
             bool anim = false;
-            anim = toolbarAppearSpring_.Step(dt) || anim;
-            anim = propBarAppearSpring_.Step(dt) || anim;
             anim = toolPillXSpring_.Step(dt) || anim;
             anim = pressScaleSpring_.Step(dt) || anim;
             anim = glowAlphaSpring_.Step(dt) || anim;
@@ -1589,7 +1582,7 @@ LRESULT CaptureOverlay::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
         }
 
         // Check Property Bar click (Color swatches / Slider)
-        if (propBarAppearSpring_.value > 0.2f && ptIn(propBarRect_, x, y)) {
+        if (activeTool_ != EditTool::Move && ptIn(propBarRect_, x, y)) {
             for (const auto& sw : colorSwatchRects_) {
                 if (ptIn(sw.second, x, y)) {
                     currentColorHex_ = sw.first;
@@ -1867,8 +1860,7 @@ LRESULT CaptureOverlay::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
                         static_cast<float>(hoveredWinRect_.bottom)
                     );
                     stage_ = Stage::Editing;
-                    toolbarAppearSpring_.SnapTo(0.0f);
-                    toolbarAppearSpring_.target = 1.0f;
+                    pillInitialized_ = false;
                 } else {
                     stage_ = Stage::Selecting;
                 }
@@ -1876,8 +1868,7 @@ LRESULT CaptureOverlay::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
                 selection_ = NormalizedSelection();
                 if (selection_.right - selection_.left >= 4.0f && selection_.bottom - selection_.top >= 4.0f) {
                     stage_ = Stage::Editing;
-                    toolbarAppearSpring_.SnapTo(0.0f);
-                    toolbarAppearSpring_.target = 1.0f;
+                    pillInitialized_ = false;
                 } else {
                     stage_ = Stage::Selecting;
                 }

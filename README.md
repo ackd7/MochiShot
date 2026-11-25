@@ -13,6 +13,12 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License"></a>
 </p>
 
+<p align="center">
+  <img src="docs/preview-light.png" alt="MochiShot Light Mode" width="46%">
+  &nbsp;&nbsp;
+  <img src="docs/preview-dark.png" alt="MochiShot Dark Mode" width="46%">
+</p>
+
 ---
 
 ## ✨ 特性亮点

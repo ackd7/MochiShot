@@ -39,12 +39,24 @@ void AddCornerG2(
     const float ox = cx - dirInX * ext + dirOutX * ext;
     const float oy = cy - dirInY * ext + dirOutY * ext;
 
-    constexpr int kSegments = 16;
+    constexpr int kSegments = 20;
     D2D1_POINT_2F pts[kSegments + 1];
     for (int i = 0; i <= kSegments; ++i) {
-        const float phi = (kPi * 0.5f) * (static_cast<float>(i) / static_cast<float>(kSegments));
-        const float cp = std::pow(std::cos(phi), 2.0f * invN);
-        const float sp = std::pow(std::sin(phi), 2.0f * invN);
+        float cp = 0.0f;
+        float sp = 0.0f;
+        if (i == 0) {
+            cp = 1.0f;
+            sp = 0.0f;
+        } else if (i == kSegments) {
+            cp = 0.0f;
+            sp = 1.0f;
+        } else {
+            const float phi = (kPi * 0.5f) * (static_cast<float>(i) / static_cast<float>(kSegments));
+            const float c = std::max(0.0f, std::cos(phi));
+            const float s = std::max(0.0f, std::sin(phi));
+            cp = (c > 0.0f) ? std::pow(c, 2.0f * invN) : 0.0f;
+            sp = (s > 0.0f) ? std::pow(s, 2.0f * invN) : 0.0f;
+        }
         pts[i] = D2D1::Point2F(
             ox - dirOutX * (ext * cp) + dirInX * (ext * sp),
             oy - dirOutY * (ext * cp) + dirInY * (ext * sp)
@@ -89,7 +101,7 @@ ComPtr<ID2D1PathGeometry> CreateG2RoundRectGeometry4(
     AddCornerG2(sink.Get(), rect.left, rect.bottom, -1.0f, 0.0f, 0.0f, -1.0f, bl, halfMin, 1.0f);
     AddCornerG2(sink.Get(), rect.left, rect.top, 0.0f, -1.0f, 1.0f, 0.0f, tl, halfMin, 1.0f);
     sink->EndFigure(D2D1_FIGURE_END_CLOSED);
-    sink->Close();
+    if (FAILED(sink->Close())) return nullptr;
     return path;
 }
 
@@ -120,7 +132,7 @@ ComPtr<ID2D1PathGeometry> CreateG2RoundRectGeometry(
     AddCornerG2(sink.Get(), rect.left, rect.bottom, -1.0f, 0.0f, 0.0f, -1.0f, r, halfMin, smoothing);
     AddCornerG2(sink.Get(), rect.left, rect.top, 0.0f, -1.0f, 1.0f, 0.0f, r, halfMin, smoothing);
     sink->EndFigure(D2D1_FIGURE_END_CLOSED);
-    sink->Close();
+    if (FAILED(sink->Close())) return nullptr;
     return path;
 }
 
@@ -189,6 +201,38 @@ void DrawMochiShadow(
         float weight = std::exp(-t * t * 2.1f) * (baseAlpha / 2.6f);
         brush->SetColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, weight));
         FillG2RoundRect(rt, factory, sr, radius + expand, brush.Get(), 1.0f);
+    }
+}
+
+void DrawThumbContactShadow(
+    ID2D1RenderTarget* rt,
+    ID2D1Factory* factory,
+    const D2D1_RECT_F& thumbRect,
+    float radius,
+    float dpiScale,
+    bool isDark,
+    float pressFactor
+) {
+    if (!rt || !factory) return;
+    ComPtr<ID2D1SolidColorBrush> brush;
+    rt->CreateSolidColorBrush(D2D1::ColorF(0.0f, 0.0f, 0.0f, 1.0f), &brush);
+    if (!brush) return;
+
+    // Tight, crisp iOS-style contact shadow directly beneath thumb (does NOT muddy the switch track!)
+    const float extra = pressFactor * 1.5f * dpiScale;
+    const float alphaBase = (isDark ? 0.24f : 0.13f) * (1.0f + pressFactor * 0.35f);
+    for (int i = 3; i >= 1; --i) {
+        float t = static_cast<float>(i) / 3.0f;
+        float expPx = (0.8f + t * 1.4f) * dpiScale + extra * t;
+        float dy = (0.7f + t * 1.1f) * dpiScale;
+        D2D1_RECT_F sr = D2D1::RectF(
+            thumbRect.left - expPx * 0.6f,
+            thumbRect.top + dy - expPx * 0.2f,
+            thumbRect.right + expPx * 0.6f,
+            thumbRect.bottom + dy + expPx * 0.6f
+        );
+        brush->SetColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, alphaBase * 0.30f * (1.2f - t * 0.5f)));
+        FillG2RoundRect(rt, factory, sr, radius + expPx * 0.5f, brush.Get(), 1.0f);
     }
 }
 

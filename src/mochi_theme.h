@@ -44,10 +44,10 @@ enum class ThemeMode : int {
     Dark   = 2
 };
 
-// Curated seed palettes inspired by feice11/mochi-compose (DefaultKeyColor = #2B6A5A)
+// Curated seed palettes matching feice11/mochi-compose preview (glass.png & MochiColorScheme.kt)
 enum class SeedAccent : int {
-    MochiJade  = 0, // #2B6A5A (Mochi default)
-    MochiTeal  = 1, // #196574 (Mochi preview glass)
+    MochiTeal  = 0, // #196574 (Exact Mochi glass.png preview palette!)
+    MochiJade  = 1, // #2B6A5A (Mochi DefaultKeyColor)
     OceanBlue  = 2, // #295EA7
     IrisViolet = 3, // #63519F
     CoralWarm  = 4  // #9C4332
@@ -55,90 +55,110 @@ enum class SeedAccent : int {
 
 struct MochiColorScheme {
     bool isDark = false;
-    D2D1_COLOR_F groupedBackground;      // Page background (#F2F5F4 / #0D1312)
-    D2D1_COLOR_F groupedContainer;       // Section card (#FFFFFF / #17201E)
-    D2D1_COLOR_F surfaceElevated;        // Floating solid fallback / thumb
-    D2D1_COLOR_F primary;                // Active accent / switch checked track
+    D2D1_COLOR_F groupedBackground;      // Page background (#EEF2F5 / #0B0F12)
+    D2D1_COLOR_F groupedContainer;       // Section card (#FFFFFF / #161D21)
+    D2D1_COLOR_F surfaceElevated;        // Segmented thumb (#FFFFFF / #38444A)
+    D2D1_COLOR_F primary;                // Text/icon accent
     D2D1_COLOR_F onPrimary;              // Foreground on primary
+    D2D1_COLOR_F switchCheckedTrack;     // Saturated high-contrast ON track so white thumb ALWAYS pops!
+    D2D1_COLOR_F switchUncheckedTrack;   // Opaque neutral gray OFF track (#DCE2E6 / #30393E)
+    D2D1_COLOR_F segmentedTrack;         // Opaque segmented capsule slot (#D7DDE1 / #252D31)
     D2D1_COLOR_F secondaryContainer;     // Tonal pill / active tab capsule
     D2D1_COLOR_F onSecondaryContainer;   // Foreground on tonal pill
     D2D1_COLOR_F onSurface;              // Primary title text
     D2D1_COLOR_F onSurfaceVariant;       // Subtitle / section header text
-    D2D1_COLOR_F controlTrack;           // Unchecked switch / segmented track
-    D2D1_COLOR_F rowHighlight;           // Pressed list row highlight
+    D2D1_COLOR_F controlTrack;           // Subtle button / slider track
+    D2D1_COLOR_F rowHighlight;           // Hover / pressed list row highlight
     D2D1_COLOR_F divider;                // Hairline separator
     D2D1_COLOR_F outline;                // Subtle border
     D2D1_COLOR_F error;                  // Danger / conflict color
-    D2D1_COLOR_F keyPreview;             // Seed swatch color
+    // 3-part tonal pie preview colors (matching glass.png "主题色" circles!)
+    D2D1_COLOR_F pieTop;
+    D2D1_COLOR_F pieBottomLeft;
+    D2D1_COLOR_F pieBottomRight;
 };
 
 inline MochiColorScheme BuildColorScheme(SeedAccent accent, bool dark) {
     struct AccentTokens {
-        uint32_t lightPrimary, lightOnPrimary, lightSecCont, lightOnSecCont;
-        uint32_t darkPrimary, darkOnPrimary, darkSecCont, darkOnSecCont;
+        uint32_t lightPrimary, lightSwitchOn, lightSecCont, lightOnSecCont;
+        uint32_t darkPrimary, darkSwitchOn, darkSecCont, darkOnSecCont;
         uint32_t lightBg, darkBg, darkCard;
-        uint32_t swatch;
+        uint32_t pieTop, pieBL, pieBR;
     };
 
     static constexpr AccentTokens kAccents[] = {
-        // MochiJade (#2B6A5A - Mochi Compose DefaultKeyColor)
-        { 0x1E6A58, 0xFFFFFF, 0xCBEBE1, 0x09382D,
-          0x83D6C0, 0x00382D, 0x1A4E42, 0xB8F1E1,
-          0xF1F5F4, 0x0C1210, 0x161F1D, 0x2B6A5A },
-        // MochiTeal (#196574 - Mochi Compose Glass Demo)
-        { 0x196574, 0xFFFFFF, 0xCBE7EE, 0x063640,
-          0x84D1E2, 0x003640, 0x184B56, 0xBCEBF6,
-          0xEFF4F6, 0x0C1214, 0x161E22, 0x196574 },
-        // OceanBlue (#295EA7)
-        { 0x295EA7, 0xFFFFFF, 0xD6E3FF, 0x082E66,
-          0xA6C8FF, 0x003062, 0x1E457A, 0xD6E3FF,
-          0xF1F4F9, 0x0C1016, 0x161C25, 0x295EA7 },
-        // IrisViolet (#63519F)
-        { 0x63519F, 0xFFFFFF, 0xE7DEFF, 0x23135C,
-          0xCCBDFF, 0x33206E, 0x4A3984, 0xE7DEFF,
-          0xF4F2F8, 0x100E16, 0x1B1824, 0x63519F },
-        // CoralWarm (#9C4332)
-        { 0x9C4332, 0xFFFFFF, 0xFFDBD3, 0x3E0B03,
-          0xFFB4A4, 0x5E170A, 0x7B2D1E, 0xFFDBD3,
-          0xF8F2F0, 0x150E0D, 0x221816, 0x9C4332 },
+        // 0: MochiTeal (#196574 — Exact match to feice11/mochi-compose glass.png!)
+        { 0x196170, 0x196170, 0xCDE7EE, 0x073742,
+          0x7AD0E2, 0x1E788A, 0x194B56, 0xC2EEF8,
+          0xEEF2F5, 0x0B1013, 0x161E22,
+          0x7BC3D1, 0xB5DCE4, 0xD6EEF3 },
+        // 1: MochiJade (#2B6A5A — Mochi DefaultKeyColor)
+        { 0x1E6A58, 0x1E6A58, 0xCBEBE1, 0x08382D,
+          0x7ED6BF, 0x1F7A64, 0x1A4E42, 0xBDF2E3,
+          0xEEF3F1, 0x0B110F, 0x151E1C,
+          0x86C7B5, 0xB7DFD4, 0xD7F2EA },
+        // 2: OceanBlue (#295EA7)
+        { 0x265CA6, 0x265CA6, 0xD6E3FF, 0x082E66,
+          0x9ECAFF, 0x2B66B5, 0x1E457A, 0xD6E3FF,
+          0xEEF2F8, 0x0B0F15, 0x151B24,
+          0x94B5E8, 0xC2D6F5, 0xE0ECFF },
+        // 3: IrisViolet (#63519F)
+        { 0x604E9E, 0x604E9E, 0xE7DEFF, 0x23135C,
+          0xCABEFF, 0x6D59B3, 0x473780, 0xECE4FF,
+          0xF2F0F7, 0x0F0D15, 0x1A1723,
+          0xB5A6E6, 0xD4CAFA, 0xECE6FF },
+        // 4: CoralWarm (#9C4332)
+        { 0x9E4231, 0x9E4231, 0xFFDBD3, 0x3E0B03,
+          0xFFB4A4, 0xB34B37, 0x782C1D, 0xFFE2DC,
+          0xF6F0EE, 0x130D0C, 0x201715,
+          0xE89B8E, 0xF5C6BE, 0xFFE3DE },
     };
 
     int idx = std::clamp(static_cast<int>(accent), 0, 4);
     const auto& t = kAccents[idx];
 
     MochiColorScheme cs{};
-    cs.isDark = dark;
-    cs.keyPreview = Rgba(t.swatch);
+    cs.isDark         = dark;
+    cs.pieTop         = Rgba(t.pieTop);
+    cs.pieBottomLeft  = Rgba(t.pieBL);
+    cs.pieBottomRight = Rgba(t.pieBR);
+
     if (!dark) {
         cs.groupedBackground    = Rgba(t.lightBg);
         cs.groupedContainer     = Rgba(0xFFFFFF);
         cs.surfaceElevated      = Rgba(0xFFFFFF);
         cs.primary              = Rgba(t.lightPrimary);
-        cs.onPrimary            = Rgba(t.lightOnPrimary);
+        cs.onPrimary            = Rgba(0xFFFFFF);
+        cs.switchCheckedTrack   = Rgba(t.lightSwitchOn);
+        cs.switchUncheckedTrack = Rgba(0xDCE1E5); // Crisp opaque neutral gray like glass.png!
+        cs.segmentedTrack       = Rgba(0xD7DCE0); // Crisp opaque segmented slot like glass.png!
         cs.secondaryContainer   = Rgba(t.lightSecCont);
         cs.onSecondaryContainer = Rgba(t.lightOnSecCont);
-        cs.onSurface            = Rgba(0x141B1A);
-        cs.onSurfaceVariant     = Rgba(0x5B6664);
-        cs.controlTrack         = Rgba(0x141F1D, 0.11f);
-        cs.rowHighlight         = Rgba(0x141F1D, 0.055f);
-        cs.divider              = Rgba(0x141F1D, 0.075f);
-        cs.outline              = Rgba(0x141F1D, 0.13f);
-        cs.error                = Rgba(0xBA1A1A);
+        cs.onSurface            = Rgba(0x161D20);
+        cs.onSurfaceVariant     = Rgba(0x5F6B70);
+        cs.controlTrack         = Rgba(0x161D20, 0.09f);
+        cs.rowHighlight         = Rgba(0x161D20, 0.048f);
+        cs.divider              = Rgba(0x161D20, 0.075f);
+        cs.outline              = Rgba(0x161D20, 0.12f);
+        cs.error                = Rgba(0xC62828);
     } else {
         cs.groupedBackground    = Rgba(t.darkBg);
         cs.groupedContainer     = Rgba(t.darkCard);
-        cs.surfaceElevated      = Rgba(0x263230);
+        cs.surfaceElevated      = Rgba(0x3A464C); // Elevated bright pill in dark segmented control
         cs.primary              = Rgba(t.darkPrimary);
-        cs.onPrimary            = Rgba(t.darkOnPrimary);
+        cs.onPrimary            = Rgba(0x062930);
+        cs.switchCheckedTrack   = Rgba(t.darkSwitchOn); // Rich saturated dark-mode switch track!
+        cs.switchUncheckedTrack = Rgba(0x323B40);       // Distinct dark-gray OFF track
+        cs.segmentedTrack       = Rgba(0x232B30);       // Distinct recessed capsule track
         cs.secondaryContainer   = Rgba(t.darkSecCont);
         cs.onSecondaryContainer = Rgba(t.darkOnSecCont);
-        cs.onSurface            = Rgba(0xE4ECEA);
-        cs.onSurfaceVariant     = Rgba(0x93A19E);
-        cs.controlTrack         = Rgba(0xE2F0ED, 0.13f);
-        cs.rowHighlight         = Rgba(0xE2F0ED, 0.065f);
-        cs.divider              = Rgba(0xE2F0ED, 0.08f);
-        cs.outline              = Rgba(0xE2F0ED, 0.15f);
-        cs.error                = Rgba(0xFFB4AB);
+        cs.onSurface            = Rgba(0xE8EFF2);
+        cs.onSurfaceVariant     = Rgba(0x8F9EA5);
+        cs.controlTrack         = Rgba(0xE8EFF2, 0.12f);
+        cs.rowHighlight         = Rgba(0xE8EFF2, 0.06f);
+        cs.divider              = Rgba(0xE8EFF2, 0.08f);
+        cs.outline              = Rgba(0xE8EFF2, 0.14f);
+        cs.error                = Rgba(0xFF6B6B);
     }
     return cs;
 }
@@ -153,6 +173,9 @@ inline MochiColorScheme LerpScheme(const MochiColorScheme& a, const MochiColorSc
     r.surfaceElevated      = LerpColor(a.surfaceElevated, b.surfaceElevated, t);
     r.primary              = LerpColor(a.primary, b.primary, t);
     r.onPrimary            = LerpColor(a.onPrimary, b.onPrimary, t);
+    r.switchCheckedTrack   = LerpColor(a.switchCheckedTrack, b.switchCheckedTrack, t);
+    r.switchUncheckedTrack = LerpColor(a.switchUncheckedTrack, b.switchUncheckedTrack, t);
+    r.segmentedTrack       = LerpColor(a.segmentedTrack, b.segmentedTrack, t);
     r.secondaryContainer   = LerpColor(a.secondaryContainer, b.secondaryContainer, t);
     r.onSecondaryContainer = LerpColor(a.onSecondaryContainer, b.onSecondaryContainer, t);
     r.onSurface            = LerpColor(a.onSurface, b.onSurface, t);
@@ -162,13 +185,14 @@ inline MochiColorScheme LerpScheme(const MochiColorScheme& a, const MochiColorSc
     r.divider              = LerpColor(a.divider, b.divider, t);
     r.outline              = LerpColor(a.outline, b.outline, t);
     r.error                = LerpColor(a.error, b.error, t);
-    r.keyPreview           = LerpColor(a.keyPreview, b.keyPreview, t);
+    r.pieTop               = LerpColor(a.pieTop, b.pieTop, t);
+    r.pieBottomLeft        = LerpColor(a.pieBottomLeft, b.pieBottomLeft, t);
+    r.pieBottomRight       = LerpColor(a.pieBottomRight, b.pieBottomRight, t);
     return r;
 }
 
 // ============================================================================
 // MochiSprings & FollowSpring (240Hz substep integration, interruptible)
-// Mirrors MochiSprings.kt: k = (2*pi / duration)^2, zeta = 1 - bounce
 // ============================================================================
 struct MochiSpring {
     float value = 0.0f;
@@ -187,26 +211,18 @@ struct MochiSpring {
         velocity = 0.0f;
     }
 
-    void ConfigureSwiftUI(float durationSec, float bounce) {
-        response = std::max(0.04f, durationSec);
-        float b = std::clamp(bounce, -0.95f, 0.95f);
-        dampingRatio = (b >= 0.0f) ? (1.0f - b) : (1.0f / (1.0f + b));
-    }
-
-    bool IsSettled(float posEps = 0.0008f, float velEps = 0.008f) const {
+    bool IsSettled(float posEps = 0.0006f, float velEps = 0.006f) const {
         return std::fabs(value - target) <= posEps && std::fabs(velocity) <= velEps;
     }
 
-    // Returns true while still animating
     bool Step(float dt) {
         if (dt <= 0.0f) return !IsSettled();
-        dt = std::min(dt, 0.05f); // Guard against window move stalls
+        dt = std::min(dt, 0.05f);
 
         const float omega = 2.0f * kPi / std::max(0.04f, response);
         const float k = omega * omega;
         const float c = 2.0f * dampingRatio * omega;
 
-        // 240Hz substep semi-implicit Euler (matches MochiFollowSpring stability)
         constexpr float kSubStep = 1.0f / 240.0f;
         float rem = dt;
         while (rem > 1e-6f) {
@@ -226,7 +242,7 @@ struct MochiSpring {
     }
 };
 
-// iOS UIScrollView rubberBand formula (from mochi-compose elastic/RubberBand.kt)
+// iOS UIScrollView rubberBand formula
 inline float RubberBand(float overshoot, float dimension, float maxLimit) {
     if (dimension <= 0.0f || maxLimit <= 0.0f || std::fabs(overshoot) < 1e-5f) return 0.0f;
     float sign = overshoot < 0.0f ? -1.0f : 1.0f;
@@ -246,13 +262,11 @@ inline float JellyCrossScale(float stretch) {
     return 1.0f / std::sqrt(std::max(0.5f, 1.0f + stretch));
 }
 
-// Concentric inner corner radius (MochiConcentric.inner)
 inline float ConcentricInner(float outerRadius, float padding, float minRadius = 4.0f) {
     if (outerRadius <= 0.0f) return 0.0f;
     return std::max(minRadius, outerRadius - padding);
 }
 
-// Radial press glow falloff: 0.85 * exp(-r^3 * 1.6) from mochiPressGlow
 inline float PressGlowFalloff(float dist, float radius) {
     if (radius <= 1.0f) return 0.0f;
     float r = std::clamp(dist / radius, 0.0f, 2.0f);

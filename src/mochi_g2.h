@@ -60,6 +60,17 @@ void DrawMochiShadow(
     float opacityScale = 1.0f
 );
 
+// Tight contact shadow specifically for switch & segmented thumbs (MochiTheme.shadows.contact)
+void DrawThumbContactShadow(
+    ID2D1RenderTarget* rt,
+    ID2D1Factory* factory,
+    const D2D1_RECT_F& thumbRect,
+    float radius,
+    float dpiScale,
+    bool isDark,
+    float pressFactor = 0.0f
+);
+
 // Exact G2 supercircle signed distance field (matches LiquidShaders.kt supercircle)
 float SupercircleSdf(float px, float py, float halfW, float halfH, float radius, float smoothing = 1.0f);
 

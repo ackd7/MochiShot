@@ -255,13 +255,12 @@ int RunAutomatedSelfTests(HINSTANCE hInstance) {
         wchar_t tmpDir[MAX_PATH]{};
         GetTempPathW(MAX_PATH, tmpDir);
         std::wstring tmpPng = (std::filesystem::path(tmpDir) / L"mochishot_selftest.png").wstring();
-        std::vector<uint8_t> dummy(64 * 64 * 4, 200);
-        for (size_t i = 3; i < dummy.size(); i += 4) dummy[i] = 255;
-        if (!mochi::SaveBgraToFile(engine.WIC(), tmpPng, dummy.data(), 64, 64, false)) return 24;
+        mochi::SettingsWindow swTest(hInstance, &engine, &cfg, {});
+        if (!swTest.RenderPreviewPng(tmpPng, false)) return 24;
         std::error_code ec;
         auto fsz = std::filesystem::file_size(tmpPng, ec);
         std::filesystem::remove(tmpPng, ec);
-        if (ec || fsz < 64) return 25;
+        if (ec || fsz < 4096) return 25;
     }
 
     // 7. Test idle memory trim
@@ -281,6 +280,19 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR lpCmdLine, int) {
         int code = RunAutomatedSelfTests(hInstance);
         if (SUCCEEDED(coHr)) CoUninitialize();
         return code;
+    }
+    if (cmdLine.find(L"--dump-ui-preview") != std::wstring::npos) {
+        mochi::AppConfig cfg{};
+        mochi::LiquidGlassEngine eng;
+        mochi::SettingsWindow sw(hInstance, &eng, &cfg, {});
+        wchar_t tmp[MAX_PATH]{};
+        GetTempPathW(MAX_PATH, tmp);
+        std::filesystem::path dir = std::filesystem::path(tmp);
+        bool ok1 = sw.RenderPreviewPng((dir / L"mochishot_settings_light.png").wstring(), false);
+        bool ok2 = sw.RenderPreviewPng((dir / L"mochishot_settings_dark.png").wstring(), true);
+        eng.Shutdown();
+        if (SUCCEEDED(coHr)) CoUninitialize();
+        return (ok1 && ok2) ? 0 : 2;
     }
 
     const bool silentBoot = (cmdLine.find(L"--silent") != std::wstring::npos);
